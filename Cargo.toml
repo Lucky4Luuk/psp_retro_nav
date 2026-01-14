@@ -1,0 +1,9 @@
+[package]
+name = "psp_retro_nav"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+psp = { path = "../rust-psp/psp", features = ["embedded-graphics"] }
+embedded-graphics = { version = "0.8.1", features = ["fixed_point"]}
+tinyqoi = { version = "0.2" }
