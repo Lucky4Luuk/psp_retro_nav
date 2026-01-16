@@ -1,0 +1,10 @@
+[package]
+name = "converter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+osmpbf = "0.3.8"
+image = "0.25.9"
+imageproc = "0.26.0"
+glam = "0.30.10"
