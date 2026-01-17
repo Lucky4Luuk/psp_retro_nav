@@ -34,5 +34,6 @@ pub fn coord_to_tile(coord: Coord, zoom: u8, tile_res: u32) -> GlobalLocation {
         tile_y: y.floor() as u32,
         x: (x.fract() * tile_res as f64) as u32,
         y: (y.fract() * tile_res as f64) as u32,
+        lat: coord.lat,
     }
 }

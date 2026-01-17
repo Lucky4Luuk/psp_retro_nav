@@ -6,6 +6,8 @@ pub struct GlobalLocation {
     pub tile_y: u32,
     pub x: u32,
     pub y: u32,
+
+    pub lat: f64,
 }
 
 #[derive(Debug, Clone)]

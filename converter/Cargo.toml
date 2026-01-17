@@ -6,5 +6,5 @@ edition = "2024"
 [dependencies]
 osmpbf = "0.3.8"
 image = "0.25.9"
-imageproc = "0.26.0"
 glam = "0.30.10"
+skia-rs-safe = { version = "0.2.0", features = ["codec-png"] }
