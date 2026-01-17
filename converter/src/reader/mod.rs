@@ -150,8 +150,8 @@ pub fn read_osm_pbf(filename: &str) -> Map {
             Some(Road {
                 extent: (road_min, road_max),
                 points,
-                width: 1f32,   // idk lol
-                speedlimit: 0, // gotta take from tags idc rn
+                width: data.width,
+                speedlimit: data.speedlimit,
             })
         })
         .collect();

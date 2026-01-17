@@ -7,4 +7,4 @@ edition = "2024"
 osmpbf = "0.3.8"
 image = "0.25.9"
 glam = "0.30.10"
-skia-rs-safe = { version = "0.2.0", features = ["codec-png"] }
+skia-safe = { version = "0.91.1" }

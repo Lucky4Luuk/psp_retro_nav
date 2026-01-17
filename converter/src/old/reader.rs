@@ -59,6 +59,9 @@ pub fn read_osm_pbf(filename: &str) -> Map {
                             let id = way.id();
                             let nodes = way.refs().collect();
                             // Default road width = 1 meter
+                            if let Some(w) = tags.get("lanes") {
+                                panic!("lanes: {}", w);
+                            }
                             let width = tags
                                 .get("width")
                                 .map(|s| match s {

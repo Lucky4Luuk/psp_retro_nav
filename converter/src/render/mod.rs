@@ -1,14 +1,6 @@
-use skia_rs_safe::canvas::RasterCanvas;
-use skia_rs_safe::canvas::Surface;
-use skia_rs_safe::codec::{ImageEncoder, ImageInfo as CodecImageInfo, PngEncoder};
-use skia_rs_safe::core::AlphaType;
-use skia_rs_safe::core::Color;
-use skia_rs_safe::core::ColorType;
-use skia_rs_safe::core::ImageInfo;
-use skia_rs_safe::paint::Paint;
-use skia_rs_safe::paint::StrokeJoin;
-use skia_rs_safe::paint::Style;
-use skia_rs_safe::path::PathBuilder;
+use skia_safe::{
+    Canvas, Color, Data, EncodedImageFormat, Paint, PaintStyle, PathBuilder, Surface, surfaces,
+};
 // use skia_rs_safe::core::{Color, Rect};
 
 use crate::Config;
@@ -44,56 +36,37 @@ pub fn render_result_to_folder(config: &Config, map_tiles: MapTiles) {
     // )
     // .unwrap();
     // let surface = Surface::new_raster(&info, None).expect("Failed to create surface!");
-    let mut surface = Surface::new_raster_n32_premul(img_width as i32, img_height as i32).unwrap();
-    let mut canvas = surface.raster_canvas();
+    let mut surface = surfaces::raster_n32_premul((img_width as i32, img_height as i32))
+        .expect("Failed to create surface!");
+    let mut canvas = surface.canvas();
 
     canvas.clear(Color::BLACK);
 
     for road in map_tiles.roads {
-        draw_road_debug(config, &mut canvas, tile_x_min, tile_y_min, road);
+        draw_road_debug(config, canvas, tile_x_min, tile_y_min, road);
     }
 
-    // surface.save_png("tmp.png").unwrap();
-    let pixels = surface.pixels();
-    let width = surface.width();
-    let height = surface.height();
-
-    let img_info = CodecImageInfo::new(width, height, ColorType::Rgba8888, AlphaType::Premul);
-    if let Some(image) =
-        skia_rs_safe::codec::Image::from_raster_data(&img_info, pixels, width as usize * 4)
-    {
-        let encoder = PngEncoder::new();
-        match encoder.encode_bytes(&image) {
-            Ok(png_data) => {
-                if let Err(e) = std::fs::write("tmp.png", &png_data) {
-                    eprintln!("Failed to write file: {}", e);
-                } else {
-                    println!("\nSaved output to: {}", "tmp.png");
-                }
-            }
-            Err(e) => eprintln!("Failed to encode PNG: {}", e),
-        }
-    }
+    let image = surface.image_snapshot();
+    let mut context = surface.direct_context();
+    let d = image
+        .encode(context.as_mut(), EncodedImageFormat::PNG, None)
+        .unwrap();
+    std::fs::write("tmp.png", d.as_bytes()).unwrap();
 }
 
-fn draw_road_debug(
-    config: &Config,
-    canvas: &mut RasterCanvas,
-    offset_x: u32,
-    offset_y: u32,
-    road: Road,
-) {
-    let mut paint = Paint::new();
-    paint.set_color32(Color::from_rgb(
+fn draw_road_debug(config: &Config, canvas: &Canvas, offset_x: u32, offset_y: u32, road: Road) {
+    let mut paint = Paint::default();
+    paint.set_color(Color::from_rgb(
         config.style.road_color[0],
         config.style.road_color[1],
         config.style.road_color[2],
     ));
-    paint.set_style(Style::Stroke);
+    paint.set_style(PaintStyle::Stroke);
     paint.set_anti_alias(true);
-    paint.set_stroke_join(StrokeJoin::Round);
-    paint.set_stroke_width(2.0);
+    // paint.set_stroke_join(StrokeJoin::Round);
+    // paint.set_stroke_width(8.0);
 
+    let mut path = PathBuilder::new();
     for i in 0..(road.points.len() - 1) {
         let start = road.points[i];
         let end = road.points[i + 1];
@@ -104,19 +77,20 @@ fn draw_road_debug(
         let endx = (end.tile_x - offset_x) * config.mapping.tile_res + end.x;
         let endy = (end.tile_y - offset_y) * config.mapping.tile_res + end.y;
 
-        let mut path = PathBuilder::new();
-        path.move_to(startx as f32, starty as f32);
-        path.line_to(endx as f32, endy as f32);
+        path.move_to((startx as f32, starty as f32));
+        path.line_to((endx as f32, endy as f32));
 
         let lat = (start.lat + end.lat) / 2.0;
-        let pixels_per_meter = 1.0 / (meters_per_pixel(config.mapping.zoom, lat) as f32);
+        let pixels_per_meter =
+            1.0 / (meters_per_pixel(config.mapping.tile_res, config.mapping.zoom, lat) as f32);
 
-        // paint.set_stroke_width(pixels_per_meter * road.width);
+        paint.set_stroke_width(pixels_per_meter * road.width);
 
-        canvas.draw_path(&path.build(), &paint);
+        canvas.draw_path(&path.detach(), &paint);
     }
 }
 
-fn meters_per_pixel(zoom: u8, lat: f64) -> f64 {
-    EARTH_CIRCUMFERENCE_METERS * lat.cos() / (2f64.powf(zoom as f64))
+fn meters_per_pixel(tile_res: u32, zoom: u8, lat: f64) -> f64 {
+    let mpp = 40075.016686 * 1000.0 / (tile_res as f64);
+    mpp * (lat * std::f64::consts::PI / 180.0).cos() / (2f64.powf((zoom) as f64))
 }
